@@ -1,0 +1,268 @@
+/* Base pixelated rendering class */
+.pixelated,
+body,
+.pixel-button,
+.pixel-box {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+}
+
+body {
+    font-family: 'Press Start 2P', monospace;
+    background-color: #1a1a1a;
+    color: #00ffaa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.pixel-button {
+    background-color: #00ffaa;
+    color: black;
+    border: 4px solid black;
+    padding: 12px 24px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+    .pixel-button:hover {
+        background-color: #00ddaa;
+    }
+
+.pixel-box {
+    border: 4px solid #00ffaa;
+    padding: 2rem;
+    text-align: center;
+    animation: pixelated-fade-in 1s ease;
+}
+
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+/* Pixelated fade-out animation */
+@keyframes pixelated-fade-out {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0px) contrast(1);
+    }
+
+    25% {
+        opacity: 0.8;
+        transform: scale(0.98);
+        filter: blur(0.5px) contrast(1.2);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.96);
+        filter: blur(1px) contrast(1.5);
+    }
+
+    75% {
+        opacity: 0.3;
+        transform: scale(0.94);
+        filter: blur(1.5px) contrast(2);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.9);
+        filter: blur(2px) contrast(3);
+    }
+}
+
+/* Pixelated fade-in animation */
+@keyframes pixelated-fade-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+        filter: blur(2px) contrast(3);
+    }
+
+    25% {
+        opacity: 0.3;
+        transform: scale(0.94);
+        filter: blur(1.5px) contrast(2);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.96);
+        filter: blur(1px) contrast(1.5);
+    }
+
+    75% {
+        opacity: 0.8;
+        transform: scale(0.98);
+        filter: blur(0.5px) contrast(1.2);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0px) contrast(1);
+    }
+}
+
+/* Additional pixelated animations */
+@keyframes pixelated-glitch-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.95) skew(0deg);
+        filter: blur(3px) hue-rotate(0deg);
+    }
+
+    20% {
+        opacity: 0.4;
+        transform: scale(0.97) skew(2deg);
+        filter: blur(2px) hue-rotate(90deg);
+    }
+
+    40% {
+        opacity: 0.7;
+        transform: scale(0.99) skew(-1deg);
+        filter: blur(1px) hue-rotate(180deg);
+    }
+
+    60% {
+        opacity: 0.9;
+        transform: scale(1.01) skew(1deg);
+        filter: blur(0.5px) hue-rotate(270deg);
+    }
+
+    80% {
+        opacity: 1;
+        transform: scale(1) skew(-0.5deg);
+        filter: blur(0px) hue-rotate(360deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) skew(0deg);
+        filter: blur(0px) hue-rotate(0deg);
+    }
+}
+
+@keyframes pixelated-dissolve-out {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+        background-size: 1px 1px;
+        background-image: radial-gradient(circle, #00ffaa 50%, transparent 50%);
+    }
+
+    25% {
+        opacity: 0.8;
+        transform: scale(0.98);
+        background-size: 2px 2px;
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.96);
+        background-size: 4px 4px;
+    }
+
+    75% {
+        opacity: 0.3;
+        transform: scale(0.94);
+        background-size: 8px 8px;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.9);
+        background-size: 16px 16px;
+    }
+}
+
+/* Utility classes for different animation types */
+.pixel-fade-in {
+    animation: pixelated-fade-in 1s ease-out;
+}
+
+.pixel-fade-out {
+    animation: pixelated-fade-out 1s ease-in;
+}
+
+.pixel-glitch-in {
+    animation: pixelated-glitch-in 1.5s ease-out;
+}
+
+.pixel-dissolve-out {
+    animation: pixelated-dissolve-out 2s ease-in;
+}
+
+/* Fast versions for quick transitions */
+.pixel-fade-in-fast {
+    animation: pixelated-fade-in 0.5s ease-out;
+}
+
+.pixel-fade-out-fast {
+    animation: pixelated-fade-out 0.5s ease-in;
+}
+
+/* Slow versions for dramatic effect */
+.pixel-fade-in-slow {
+    animation: pixelated-fade-in 2s ease-out;
+}
+
+.pixel-fade-out-slow {
+    animation: pixelated-fade-out 2s ease-in;
+}
+
+/* Animation delays for staggered effects */
+.pixel-delay-1 {
+    animation-delay: 0.1s;
+}
+
+.pixel-delay-2 {
+    animation-delay: 0.2s;
+}
+
+.pixel-delay-3 {
+    animation-delay: 0.3s;
+}
+
+.pixel-delay-4 {
+    animation-delay: 0.4s;
+}
+
+.pixel-delay-5 {
+    animation-delay: 0.5s;
+}
+
+/* Animation fill modes */
+.pixel-fill-forwards {
+    animation-fill-mode: forwards;
+}
+
+.pixel-fill-backwards {
+    animation-fill-mode: backwards;
+}
+
+.pixel-fill-both {
+    animation-fill-mode: both;
+}

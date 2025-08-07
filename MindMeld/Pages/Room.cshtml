@@ -1,0 +1,23 @@
+﻿@page "/room/{RoomId:int?}"
+@model MindMeld.Pages.RoomModel
+@{
+}
+<div class="w-full max-w-xl pixel-box pixel-fade-in" data-signals-host="false" data-signals-players="1" id="home-screen">
+    <h1 class="text-xl text-center mb-8">MIND MELD</h1>
+    <form data-action="/submit-word/1234" method="post" class="flex gap-4 mb-6">
+        <input name="word"
+               placeholder="Enter a word"
+               data-bind="input"
+               class="bg-black text-[#00ffaa] border-4 border-[#00ffaa] p-2 w-full text-xs focus:outline-none" />
+        <button type="submit"
+                class="bg-[#00ffaa] text-black border-4 border-black px-4 py-2 text-xs hover:bg-[#00ddaa] transition">
+            SUBMIT
+        </button>
+    </form>
+
+    <div data-show="$host=='true'" data-bind="innerHTML"
+         class="text-sm p-4">
+        <div data-attr-show="$players <= 1"> Waiting for more players to join...</div>
+        <button class="pixel-button" data-attr-show="$players>1">Start Game</button>
+    </div>
+</div>

@@ -1,0 +1,31 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+<div class="fixed top-4 right-4 z-10">
+    <div class="flex items-center space-x-4">
+        <input type="text"
+               data-bind-player-name
+               placeholder="Enter Your Name"
+               class="bg-black text-[#00ffaa] border-2 border-[#00ffaa] px-3 py-1 text-xl" />
+    </div>
+</div>
+<div class="text-center space-y-6" id="home-screen">
+    <div class="text-[#00ffaa]" data-show="$playerName!=''">Welcome</div>
+    <div class="text-[#00ffaa]" data-text="$playerName.toUpperCase()"></div>
+    <h1 class="text-4xl">MIND MELD</h1>
+    <button data-attr-disabled="$playerName==''"
+            data-class-opacity-50="$playerName==''"
+            data-class-cursor-not-allowed="$playerName==''"
+            data-class-hover:bg-[#00ddaa]="$playerName!=''"
+            data-on-click="@@post('/api/new-room')"
+            class="inline-block bg-[#00ffaa] text-black border-4 border-black px-6 py-3 text-xs transition">
+        START GAME
+    </button>
+    <button class="bg-transparent border-4 border-[#00ffaa] px-6 py-3 text-xs hover:bg-[#00ffaa] hover:text-black transition">
+        HOW TO PLAY
+    </button>
+</div>
+<div data-show="$playerName==''" class="mt-3 text-center text-red-400 text-xs">Please Enter Your Name</div>
+
