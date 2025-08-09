@@ -86,10 +86,12 @@ app.MapGet("/api/check-host/{roomId}/{playerId:guid}", async (string roomId, Gui
                 class="text-sm p-4">
             <div data-show="$playerCount <= 1"> Waiting for more players to join...</div>
             <button class="pixel-button"
+            data-show="$gameState=='Waiting'"
             data-attr-disabled="$playerCount<=1"
             data-class-opacity-50="$playerCount<=1"
             data-class-cursor-not-allowed="$playerCount<=1"
-            data-class-hover:bg-[#00ddaa]="$playerCount<=1">
+            data-class-hover:bg-[#00ddaa]="$playerCount<=1"
+            data-on-click="startGame()">
                 Start Game
             </button>
         </div>
@@ -100,7 +102,7 @@ app.MapGet("/api/check-host/{roomId}/{playerId:guid}", async (string roomId, Gui
         await dataStarService.PatchElementsAsync("""
         <div id="host-control"
                 class="text-sm p-4">
-            <div>You are not the host. Waiting for host to start the game...</div>
+            <div data-show="$gameState=='Waiting'">You are not the host. Waiting for host to start the game...</div>
         </div>
         """);
     }

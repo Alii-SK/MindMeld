@@ -16,181 +16,200 @@
 
 </div>
 
-
-<div class="w-full max-w-xl pixel-box pixel-fade-in" data-signals-player-count="1" id="home-screen">
+<div class="text-center mb-4">
+    <div data-show="$gameState=='InProgress'" class="text-[#00ffaa] text-lg">
+        Round <span data-text="$roundNumber"></span>
+    </div>
+    <div data-show="$gameState=='InProgress'" class="text-[#00ffaa] text-lg">
+        Try to get the same word!
+    </div>
+</div>
+<div class="w-full max-w-xl pixel-box pixel-fade-in"
+    data-signals-player-count="0"
+    data-signals-game-state="'Waiting'" id="home-screen"
+    data-signals-round-number="0"
+    data-on-removeplayer__window="$playerCount=$playerCount-1;"
+    data-on-addplayer__window="$playerCount=playerCount"
+    data-on-countdownupdate__window="$countdown=countDown"
+    data-on-updategamestate__window="$gameState=gameState"
+    data-on-updateroundnumber__window="$roundNumber=roundNumber">
     <h1 class="text-xl text-center mb-8">MIND MELD</h1>
     <div class="flex gap-4 mb-6">
         <input name="word"
+               id="word-field"
                placeholder="Enter a word"
                data-bind="input"
                class="bg-black text-[#00ffaa] border-4 border-[#00ffaa] p-2 w-full text-xs focus:outline-none" />
         <button type="submit"
-                data-attr-disabled="$playerCount<=1"
-                data-class-opacity-50="$playerCount<=1"
-                data-class-cursor-not-allowed="$playerCount<=1"
-                data-class-hover:bg-[#00ddaa]="$playerCount<=1"
+                data-attr-disabled="$gameState!='InProgress'"
+                data-class-opacity-50="$gameState!='InProgress'"
+                data-class-cursor-not-allowed="$gameState!='InProgress'"
+                data-class-hover:bg-[#00ddaa]="$gameState!='InProgress'"
+                data-on-click="submitWord()"
                 class="bg-[#00ffaa] text-black border-4 border-black px-4 py-2 text-xs hover:bg-[#00ddaa] transition">
             SUBMIT
         </button>
     </div>
 
-
+    <!-- Countdown overlay -->
+    <div data-show="$gameState=='Starting'"
+         class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="text-6xl text-[#00ffaa] font-bold mb-4" data-text="$countdown"></div>
+            <div class="text-2xl text-[#00ffaa]">GAME STARTING</div>
+        </div>
+    </div>
 
     <div id="host-control" data-on-load="@@get('/api/check-host/@Model.RoomId/@Model.PlayerId'); initializeSignalR();"
          class="text-sm p-4">
     </div>
 </div>
-<script src="https://unpkg.com/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
-<script>
-    const roomId = '@Model.RoomId';
-    const playerId = '@Model.PlayerId';
-    const playerName = '@Model.PlayerName';
-    function copyRoomLink() {
+@section Scripts {
+    <script src="https://unpkg.com/@@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+    <script>
+        const roomId = '@Model.RoomId';
+        const playerId = '@Model.PlayerId';
+        const playerName = '@Model.PlayerName';
+        var playerCount = 0;
+        var countDown=5;
+        var gameState="Waiting"
+        var roundNumber=1;
+        function copyRoomLink() {
 
-       const roomLink = `${window.location.origin}/lobby/${roomId}`;
+           const roomLink = `${window.location.origin}/lobby/${roomId}`;
 
-       navigator.clipboard.writeText(roomLink).catch(() => {
-           // Fallback for older browsers
-           const textArea = document.createElement('textarea');
-           textArea.value = roomLink;
-           document.body.appendChild(textArea);
-           textArea.select();
-           document.execCommand('copy');
-           document.body.removeChild(textArea);
-       });
-    }
-    async function initializeSignalR() {
-        connection = new signalR.HubConnectionBuilder()
-            .withUrl("/gameHub")
-            .build();
+           navigator.clipboard.writeText(roomLink).catch(() => {
+               // Fallback for older browsers
+               const textArea = document.createElement('textarea');
+               textArea.value = roomLink;
+               document.body.appendChild(textArea);
+               textArea.select();
+               document.execCommand('copy');
+               document.body.removeChild(textArea);
+           });
+        }
+        async function initializeSignalR() {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/gameHub")
+                .build();
 
-        // Set up event handlers
-        connection.on("PlayerJoined", (playerId, playerName) => {
-            console.log(`Player ${playerName} joined`);
-            
-            addPlayer(playerId, playerName)
-        });
+            // Set up event handlers
+            connection.on("PlayerJoined", (playerId, playerName, playerCount) => {
+                console.log(`Player ${playerName} joined`);
+                addPlayer(playerId, playerName, playerCount);
+            });
 
-        connection.on("PlayerLeft", (playerId) => {
-            console.log(`Player ${playerId} left`);
-            removePlayer(playerId)
-        });
+            connection.on("PlayerLeft", (playerId) => {
+                console.log(`Player ${playerId} left`);
+                removePlayer(playerId)
+            });
 
-        connection.on("GameStateUpdate", (gameState) => {
-            updateGameUI(gameState);
-        });
+            connection.on("GameStateUpdate", (gameState) => {
+                dispatchEvent(updatePlayerCountEvent);
+            });
 
-        connection.on("GameStarted", (gameInfo) => {
-            showGameArea();
-            updateRoundInfo(gameInfo.currentRound);
-            startTimer(gameInfo.timeRemaining);
-        });
+            connection.on("GameStarted", (gameInfo) => {
+                gameState=gameInfo.gameState;
+                roundNumber=gameInfo.currentRound;
+                console.log(roundNumber);
+                dispatchEvent(updateRoundNumber);
+                dispatchEvent(updateGameState)
+            });
 
-        connection.on("WordSubmitted", (playerId, word) => {
-            addSubmission(playerId, word);
-        });
+            connection.on("WordSubmitted", (playerId, word) => {
+                const statusIcon = document.querySelector(`#player-${playerId} span:last-child`);
+                if (statusIcon) {
+                    statusIcon.textContent = '✅';
+                }
+            });
 
-        connection.on("RoundEnded", (results) => {
-            showResults(results);
-            if (results.gameState === "GameEnd") {
-                showGameEnd(results);
+            connection.on("RoundEnded", (results) => {
+                showResults(results);
+                if (results.gameState === "GameEnd") {
+                    showGameEnd(results);
+                }
+            });
+
+            connection.on("NextRoundStarted", (gameInfo) => {
+                hideResults();
+                showGameArea();
+                updateRoundInfo(gameInfo.currentRound);
+                startTimer(gameInfo.timeRemaining);
+                clearSubmissions();
+            });
+            connection.on("CountdownUpdate", (countdown) => {
+                gameState="Starting";
+                dispatchEvent(updateGameState);
+                countDown = countdown;
+                const countdownEvent = new CustomEvent('countdownupdate');
+                dispatchEvent(countdownEvent);
+            });
+            // Start connection
+            await connection.start();
+
+            // Join room
+            await connection.invoke("JoinRoom", roomId, playerId, playerName);
+        }
+
+        // Game functions
+        function startGame() {
+            connection.invoke("PreStartGame", roomId, playerId);
+        }
+
+        function submitWord() {
+            const wordField = document.getElementById('word-field');
+            const word = wordField.value.trim().toLowerCase();
+
+            if (word) {
+                connection.invoke("SubmitWord", roomId, playerId,playerName, word);
+                wordField.value = '';
+                wordField.disabled = true;
+            }
+        }
+
+        // Clean up when leaving page
+        window.addEventListener('beforeunload', () => {
+            if (connection) {
+                connection.invoke("LeaveRoom", roomId, playerId);
+                connection.stop();
             }
         });
+        // Individual player management functions
+        function addPlayer(playerId, playerName, playerCounter) {
+            playerCount = playerCounter
+            const container = document.querySelector('.fixed.top-4.left-4');
+            dispatchEvent(addPlayerEvent);
+            // Check if player already exists
+            if (document.getElementById(`player-${playerId}`)) {
+                return;
+            }
+            const playerElement = document.createElement('div');
+            playerElement.id = `player-${playerId}`;
+            playerElement.className = 'mb-2 p-2 bg-black border border-[#00ffaa] text-[#00ffaa] text-sm';
 
-        connection.on("NextRoundStarted", (gameInfo) => {
-            hideResults();
-            showGameArea();
-            updateRoundInfo(gameInfo.currentRound);
-            startTimer(gameInfo.timeRemaining);
-            clearSubmissions();
-        });
-
-        // Start connection
-        await connection.start();
-
-        // Join room
-        await connection.invoke("JoinRoom", roomId, playerId, playerName);
-    }
-
-    // Game functions
-    function startGame() {
-        if (isHost) {
-            connection.invoke("StartGame", roomId, playerId);
-        }
-    }
-
-    function submitWord() {
-        const wordField = document.getElementById('word-field');
-        const word = wordField.value.trim();
-
-        if (word) {
-            connection.invoke("SubmitWord", roomId, playerId, word);
-            wordField.value = '';
-            wordField.disabled = true;
-        }
-    }
-
-    // Clean up when leaving page
-    window.addEventListener('beforeunload', () => {
-        if (connection) {
-            connection.invoke("LeaveRoom", roomId, playerId);
-            connection.stop();
-        }
-    });
-    // Individual player management functions
-    function addPlayer(playerId, playerName) {
-        const container = document.querySelector('.fixed.top-4.left-4');
-
-        // Check if player already exists
-        if (document.getElementById(`player-${playerId}`)) {
-            return;
-        }
-        const playerElement = document.createElement('div');
-        playerElement.id = `player-${playerId}`;
-        playerElement.className = 'mb-2 p-2 bg-black border border-[#00ffaa] text-[#00ffaa] text-sm';
-
-        playerElement.innerHTML = `
-            <div class="flex items-center justify-between">
-                <span>${playerName}</span>
-                <div class="ml-2">
-                    <span>⏳</span>
+            playerElement.innerHTML = `
+                <div class="flex items-center justify-between text-lg">
+                    <span>${playerName}</span>
+                    <div class="ml-2">
+                        <span>⏳</span>
+                    </div>
                 </div>
-            </div>
-        `;
-        container.appendChild(playerElement);
-
-        // Update player count
-        updateSignals({
-            playerCount: 2
-        }, false);
-    }
-    function removePlayer(playerId) {
-        const playerElement = document.getElementById(`player-${playerId}`);
-        if (playerElement) {
-            playerElement.remove();
-
-            // Update player count
-            const currentCount = window.ds.signals.playerCount || 0;
-            window.ds.signals.totalPlayers = Math.max(0, currentCount - 1);
+            `;
+            container.appendChild(playerElement);
         }
-    }
-    function updatePlayerGuessStatus(playerId, hasGuessed) {
-        const playerElement = document.getElementById(`player-${playerId}`);
-        if (playerElement) {
-            // Update the signal for this specific player element
-            playerElement.setAttribute('data-signals-has-guessed', hasGuessed.toString());
+        function removePlayer(playerId) {
+            const playerElement = document.getElementById(`player-${playerId}`);
+            if (playerElement) {
+                playerElement.remove();
 
-            // Trigger Datastar to re-evaluate the element
-            window.ds.signals[`player_${playerId}_guessed`] = hasGuessed;
-        }
-    }
-    function updateSignals(signalsData, onlyIfMissing = false) {
-        const event = new CustomEvent('datastar-patch-signals', {
-            detail: {
-                signals: signalsData,
-                onlyIfMissing: onlyIfMissing
+                // Update player count
+                dispatchEvent(removePlayerEvent);
             }
-        });
-        document.dispatchEvent(event);
-    }
-</script>
+        }
+        const addPlayerEvent = new CustomEvent('addplayer');
+        const updatePlayerCountEvent = new CustomEvent('updatePlayerCount');
+        const removePlayerEvent = new CustomEvent('removeplayer');
+        const updateGameState = new CustomEvent('updategamestate');
+        const updateRoundNumber = new CustomEvent('updateroundnumber');
+    </script>
+}

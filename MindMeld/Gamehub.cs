@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
 
 namespace MindMeld.Hubs;
@@ -22,12 +23,9 @@ public class GameHub : Hub
                 return existing;
             });
 
-        // Notify others in the room that a player joined
-        await Clients.Group($"room_{roomId}")
-            .SendAsync("PlayerJoined", playerId, playerName);
-
         // Send current game state to the new connection
         var room = GameRoomManager.GetRoom(roomId);
+        int playerCount = room!.Players.Count;
         if (room != null)
         {
             await Clients.Caller.SendAsync("GameStateUpdate", new
@@ -40,6 +38,9 @@ public class GameHub : Hub
                 gameWon = room.GameWon
             });
         }
+        // Notify others in the room that a player joined
+        await Clients.Group($"room_{roomId}")
+                .SendAsync("PlayerJoined", playerId, playerName, playerCount);
     }
 
     public async Task LeaveRoom(string roomId, string playerId)
@@ -77,7 +78,19 @@ public class GameHub : Hub
             await EndRound(roomId);
         }
     }
+    public async Task PreStartGame(string roomId, string playerId)
+    {
+        var room = GameRoomManager.GetRoom(roomId);
+        if (room == null || room.Host?.Id.ToString() != playerId) return;
+        for (int countdown = 5; countdown > 0; countdown--)
+        {
+            await Clients.Group($"room_{roomId}").SendAsync("CountdownUpdate", countdown);
+            await Task.Delay(1000); // Wait 1 second
+        }
 
+        // Start the actual game
+        await StartGame(roomId, playerId);
+    }
     public async Task StartGame(string roomId, string hostId)
     {
         var room = GameRoomManager.GetRoom(roomId);
