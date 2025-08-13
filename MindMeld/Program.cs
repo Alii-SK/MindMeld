@@ -128,11 +128,14 @@ static string GeneratePlayerListHtml(GameRoom room)
         var statusIcon = hasGuessed ? "✓" : "⏳";
 
         return $"""
-            <div id="player-{player.Id}" class="mb-2 p-2 bg-black border border-[#00ffaa] text-[#00ffaa] text-sm">
-                <div class="flex items-center justify-between">
+            <div id="player-{player.Id}" class="mb-2 p-2 bg-black border border-[#00ffaa] text-[#00ffaa] text-lg">
+                <div class="flex items-center justify-between text-lg">
                     <span>{player.Name}</span>
                     <div class="ml-2">
-                        <span>{statusIcon}</span>
+                        <span class="status-icon">{statusIcon}</span>
+                    </div>
+                    <div id="player-{player.Id}-word" class="ml-2">
+                        <span class="text-gray-400">Waiting...</span>
                     </div>
                 </div>
             </div>

@@ -18,21 +18,31 @@
 
 <div class="text-center mb-4">
     <div data-show="$gameState=='InProgress'" class="text-[#00ffaa] text-lg">
-        Round <span data-text="$roundNumber"></span>
+        Round <span data-text="$roundNumber"></span> / 10
     </div>
     <div data-show="$gameState=='InProgress'" class="text-[#00ffaa] text-lg">
         Try to get the same word!
+    </div>
+    <div data-show="$gameState=='InProgress'" class="text-xl font-bold mt-2"
+         data-class-text-red-500="$timer<=5"
+         data-class-text-yellow-500="$timer>5 && $timer<=10"
+         data-class-text-[#00ffaa]="$timer>10">
+        Time: <span data-text="$timer"></span>s
     </div>
 </div>
 <div class="w-full max-w-xl pixel-box pixel-fade-in"
     data-signals-player-count="0"
     data-signals-game-state="'Waiting'" id="home-screen"
     data-signals-round-number="0"
+    data-signals-timer="15"
     data-on-removeplayer__window="$playerCount=$playerCount-1;"
     data-on-addplayer__window="$playerCount=playerCount"
     data-on-countdownupdate__window="$countdown=countDown"
     data-on-updategamestate__window="$gameState=gameState"
-    data-on-updateroundnumber__window="$roundNumber=roundNumber">
+    data-on-updateroundnumber__window="$roundNumber=roundNumber"
+    data-on-updatetimer__window="$timer=timer"
+    data-on-updateroundwon__window="$roundWon=roundWon; $gameEnd=gameEnd"
+    data-on-updatenextroundtimer__window="$nextRoundTimer=nextRoundTimer">
     <h1 class="text-xl text-center mb-8">MIND MELD</h1>
     <div class="flex gap-4 mb-6">
         <input name="word"
@@ -41,6 +51,7 @@
                data-bind="input"
                class="bg-black text-[#00ffaa] border-4 border-[#00ffaa] p-2 w-full text-xs focus:outline-none" />
         <button type="submit"
+                id="submit-btn"
                 data-attr-disabled="$gameState!='InProgress'"
                 data-class-opacity-50="$gameState!='InProgress'"
                 data-class-cursor-not-allowed="$gameState!='InProgress'"
@@ -59,7 +70,36 @@
             <div class="text-2xl text-[#00ffaa]">GAME STARTING</div>
         </div>
     </div>
+    <div data-show="$gameState=='ShowingResults'"
+         class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+        <div class="text-center max-w-md mx-auto p-8">
+            <!-- Win message -->
+            <div data-show="$roundWon" class="mb-6">
+                <div class="text-6xl mb-4">🎉</div>
+                <div class="text-3xl text-green-400 font-bold mb-2">CONGRATULATIONS!</div>
+                <div class="text-xl text-[#00ffaa]">You all guessed the same word!</div>
+                <div class="text-2xl text-yellow-400 font-bold" id="winning-word"></div>
+            </div>
 
+            <!-- Lose message -->
+            <div data-show="!$roundWon && !$gameEnd" class="mb-6">
+                <div class="text-6xl mb-4">❌</div>
+                <div class="text-3xl text-red-400 font-bold mb-2">TRY AGAIN!</div>
+                <div class="text-xl text-[#00ffaa]">You didn't guess the same word</div>
+            </div>
+            <div data-show="!$roundWon && $gameEnd==true" class="mb-6">
+                <div class="text-6xl mb-4">🏁</div>
+                <div class="text-3xl text-orange-400 font-bold mb-2">GAME OVER!</div>
+                <div class="text-xl text-[#00ffaa] mb-2">You've reached the maximum rounds!</div>
+                <div class="text-lg text-gray-400">Better luck next time!</div>
+            </div>
+            <!-- Countdown to next round -->
+            <div class="mt-6" data-show="!$roundWon && !$gameEnd">
+                <div class="text-lg text-yellow-400">Next round starting in...</div>
+                <div class="text-4xl text-[#00ffaa] font-bold" data-text="$nextRoundTimer"></div>
+            </div>
+        </div>
+    </div>
     <div id="host-control" data-on-load="@@get('/api/check-host/@Model.RoomId/@Model.PlayerId'); initializeSignalR();"
          class="text-sm p-4">
     </div>
@@ -74,6 +114,16 @@
         var countDown=5;
         var gameState="Waiting"
         var roundNumber=1;
+        var timer = 15;
+        gameTimer = null;
+        var roundWon = false;
+        var gameEnd = false;
+        var nextRoundTimer = 5;
+        var nextRoundInterval = null
+        if (gameTimer) {
+            clearInterval(gameTimer);
+            gameTimer = null;
+        }
         function copyRoomLink() {
 
            const roomLink = `${window.location.origin}/lobby/${roomId}`;
@@ -111,7 +161,6 @@
             connection.on("GameStarted", (gameInfo) => {
                 gameState=gameInfo.gameState;
                 roundNumber=gameInfo.currentRound;
-                console.log(roundNumber);
                 dispatchEvent(updateRoundNumber);
                 dispatchEvent(updateGameState)
             });
@@ -124,18 +173,15 @@
             });
 
             connection.on("RoundEnded", (results) => {
-                showResults(results);
-                if (results.gameState === "GameEnd") {
-                    showGameEnd(results);
-                }
+                showRoundResults(results);
             });
 
             connection.on("NextRoundStarted", (gameInfo) => {
-                hideResults();
-                showGameArea();
-                updateRoundInfo(gameInfo.currentRound);
-                startTimer(gameInfo.timeRemaining);
-                clearSubmissions();
+                gameState=gameInfo.gameState;
+                roundNumber=gameInfo.currentRound;
+                timer = gameInfo.timeRemaining;
+                dispatchEvent(updateRoundNumber);
+                dispatchEvent(updateGameState)
             });
             connection.on("CountdownUpdate", (countdown) => {
                 gameState="Starting";
@@ -143,6 +189,20 @@
                 countDown = countdown;
                 const countdownEvent = new CustomEvent('countdownupdate');
                 dispatchEvent(countdownEvent);
+            });
+            connection.on("RoundTimerUpdate", (timeRemaining) => {
+                timer = timeRemaining;
+                dispatchEvent(updateTimerEvent);
+
+                // Auto-disable field when timer hits 0 (backup - server should handle submission)
+                if (timeRemaining <= 0) {
+                    const wordField = document.getElementById('word-field');
+                    const submitButton = document.getElementById('submit-btn');
+                    if (!wordField.disabled) {
+                        wordField.disabled = true;
+                        submitButton.disabled = true;
+                    }
+                }
             });
             // Start connection
             await connection.start();
@@ -159,14 +219,42 @@
         function submitWord() {
             const wordField = document.getElementById('word-field');
             const word = wordField.value.trim().toLowerCase();
-
-            if (word) {
-                connection.invoke("SubmitWord", roomId, playerId,playerName, word);
-                wordField.value = '';
-                wordField.disabled = true;
-            }
+            const submitButton = document.getElementById('submit-btn')
+            // Check if already submitted (prevent double submission)
+            if (wordField.disabled) return;
+            connection.invoke("SubmitWord", roomId, playerId, playerName, word);
+            wordField.value = '';
+            wordField.disabled = true;
+            submitButton.disabled=true;
         }
+        function setupNewRound() {
+            // Clear any running countdown
+            if (nextRoundInterval) {
+                clearInterval(nextRoundInterval);
+                nextRoundInterval = null;
+            }
 
+            // Reset all word displays back to waiting
+            resetPlayerStatusIcons();
+
+            // Re-enable the input field
+            const wordField = document.getElementById('word-field');
+            const submitButton = document.getElementById('submit-btn');
+            wordField.disabled = false;
+            submitButton.disabled = false;
+            wordField.value = '';
+
+            // Reset round won state
+            roundWon = false;
+            const updateRoundWonEvent = new CustomEvent('updateroundwon');
+            dispatchEvent(updateRoundWonEvent);
+
+            // Update game state back to InProgress
+            gameState = "InProgress";
+            dispatchEvent(updateGameState);
+
+            connection.invoke("StartNextRound", roomId, playerId);
+        }
         // Clean up when leaving page
         window.addEventListener('beforeunload', () => {
             if (connection) {
@@ -185,13 +273,16 @@
             }
             const playerElement = document.createElement('div');
             playerElement.id = `player-${playerId}`;
-            playerElement.className = 'mb-2 p-2 bg-black border border-[#00ffaa] text-[#00ffaa] text-sm';
+            playerElement.className = 'mb-2 p-2 bg-black border border-[#00ffaa] text-[#00ffaa] text-lg';
 
             playerElement.innerHTML = `
                 <div class="flex items-center justify-between text-lg">
                     <span>${playerName}</span>
                     <div class="ml-2">
-                        <span>⏳</span>
+                        <span class="status-icon">⏳</span>
+                    </div>
+                    <div id="player-${playerId}-word" class="ml-2">
+                        <span class="text-gray-400">Waiting...</span>
                     </div>
                 </div>
             `;
@@ -206,10 +297,107 @@
                 dispatchEvent(removePlayerEvent);
             }
         }
+        function startGameTimer() {
+            timer = 15;
+            const updateTimerEvent = new CustomEvent('updatetimer');
+            dispatchEvent(updateTimerEvent);
+
+            // Clear any existing timer
+            if (gameTimer) {
+                clearInterval(gameTimer);
+                gameTimer= null;
+            }
+        }
+        function showRoundResults(results) {
+            console.log('Round results:', results);
+
+            // Show words submitted by each player
+            displaySubmittedWords(results.submissions);
+
+            // Update game state to show we're in results phase
+            gameState = "ShowingResults";
+
+            // Check if game is won (all players got the same word)
+            if (results.gameWon) {
+                roundWon = true;
+                gameEnd = true;
+                // Game is won - stop here and don't start next round
+                dispatchEvent(updateGameState);
+                const winningWord = results.submissions[Object.keys(results.submissions)[0]] || '';
+                document.getElementById('winning-word').textContent = winningWord;
+                const updateRoundWonEvent = new CustomEvent('updateroundwon');
+                dispatchEvent(updateRoundWonEvent);
+            } else if (results.gameState === "GameEnd") {
+                // Max rounds reached without success
+                roundWon = false;
+                gameEnd = true;
+                dispatchEvent(updateGameState);
+                const updateRoundWonEvent = new CustomEvent('updateroundwon');
+                dispatchEvent(updateRoundWonEvent);
+            } else {
+                roundWon = false;
+                gameEnd = false;
+                dispatchEvent(updateGameState);
+                const updateRoundWonEvent = new CustomEvent('updateroundwon');
+                dispatchEvent(updateRoundWonEvent);
+                // Game continues - start 3 second countdown to next round
+                startNextRoundCountdown(3);
+            }
+        }
+        function startNextRoundCountdown(seconds = 5) {
+            nextRoundTimer = seconds;
+            const updateNextRoundTimerEvent = new CustomEvent('updatenextroundtimer');
+            dispatchEvent(updateNextRoundTimerEvent);
+
+            // Clear any existing countdown
+            if (nextRoundInterval) {
+                clearInterval(nextRoundInterval);
+            }
+
+            nextRoundInterval = setInterval(() => {
+                nextRoundTimer--;
+                dispatchEvent(updateNextRoundTimerEvent);
+
+                if (nextRoundTimer <= 0) {
+                    clearInterval(nextRoundInterval);
+                    nextRoundInterval = null;
+                    // Start next round
+                    setupNewRound();
+                }
+            }, 1000);
+        }
+        function displaySubmittedWords(submissions) {
+
+            // Loop through submissions (key-value pairs)
+            Object.entries(submissions).forEach(([playerId, word]) => {
+
+                // Find the word element for this player
+                const wordElement = document.getElementById(`player-${playerId}-word`);
+
+                if (wordElement) {
+                    // Check if word is empty or just whitespace
+                    if (!word || word.trim() === '') {
+                        wordElement.innerHTML = `<span class="text-red-400">(no word)</span>`;
+                    } else {
+                        wordElement.innerHTML = `<span class="text-yellow-400">${word}</span>`;
+                    }
+                } else {
+                    console.error(`Could not find word element for player ${playerId}`);
+                }
+            });
+        }
+        function resetPlayerStatusIcons() {
+            // Reset status icons
+            const statusIcons = document.querySelectorAll('.status-icon');
+            statusIcons.forEach(icon => {
+                icon.textContent = '⏳';
+            });
+        }
         const addPlayerEvent = new CustomEvent('addplayer');
         const updatePlayerCountEvent = new CustomEvent('updatePlayerCount');
         const removePlayerEvent = new CustomEvent('removeplayer');
         const updateGameState = new CustomEvent('updategamestate');
         const updateRoundNumber = new CustomEvent('updateroundnumber');
+        const updateTimerEvent = new CustomEvent('updatetimer');
     </script>
 }

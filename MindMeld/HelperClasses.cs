@@ -43,7 +43,7 @@ public class GameRoom
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public GameState State { get; set; } = GameState.Waiting;
     public GameRound? CurrentRound { get; set; } = new GameRound();
-    public int MaxRounds { get; set; } = 5;
+    public int MaxRounds { get; set; } = 10;
     public List<GameRound> CompletedRounds { get; } = new();
     public bool GameWon { get; set; } = false;
     public GameRoom(string id)
@@ -91,7 +91,7 @@ public class GameRoom
     }
     public void SubmitWord(Guid playerId, string word)
     {
-        if (CurrentRound != null && !CurrentRound.IsTimeUp)
+        if (CurrentRound != null)
         {
             CurrentRound.PlayerSubmissions[playerId] = word.Trim().ToLowerInvariant();
         }
@@ -101,9 +101,9 @@ public class GameRoom
         if (CurrentRound?.PlayerSubmissions.Count == 0) return false;
 
         var words = CurrentRound.PlayerSubmissions.Values.ToList();
-        return words.All(w => w == words.First());
+        return words.All(w =>w!="" && w == words.First());
     }
-
+    private const int MAX_STORED_ROUNDS = 5; // Only keep last 5 rounds
     public void EndRound()
     {
         if (CurrentRound == null) return;
@@ -123,6 +123,11 @@ public class GameRoom
         }
 
         CompletedRounds.Add(CurrentRound);
+        // Limit stored rounds to prevent bloating
+        if (CompletedRounds.Count > MAX_STORED_ROUNDS)
+        {
+            CompletedRounds.RemoveAt(0);
+        }
         CurrentRound = null;
     }
 }
@@ -136,23 +141,6 @@ public class GameService
         if (room == null) return;
 
         room.StartNewRound();
-        StartRoundTimer(roomId, hub);
-    }
-
-    private static void StartRoundTimer(string roomId, GameHub hub)
-    {
-        // Cancel existing timer if any
-        if (_gameTimers.TryRemove(roomId, out var existingTimer))
-        {
-            existingTimer.Dispose();
-        }
-
-        var timer = new Timer(async _ =>
-        {
-            await EndRound(roomId, hub);
-        }, null, TimeSpan.FromSeconds(15), Timeout.InfiniteTimeSpan);
-
-        _gameTimers[roomId] = timer;
     }
 
     private static async Task EndRound(string roomId, GameHub hub)
@@ -197,6 +185,11 @@ public class GameRoomManager
             _rooms.TryRemove(roomId, out _);
         }
     }
+    // Add this method for immediate room deletion
+    public static bool DeleteRoom(string roomId)
+    {
+        return _rooms.TryRemove(roomId, out _);
+    }
     public static bool IsGameHost(string roomId, Guid playerId)
     {
         var room = GetRoom(roomId);
@@ -227,5 +220,16 @@ public class GameRoomManager
         // Generate a simple 4-digit room code
         var random = new Random();
         return random.Next(1000, 9999).ToString();
+    }
+}
+public class RoomCleanupService : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            GameRoomManager.CleanupExpiredRooms();
+            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); // Clean every 5 minutes
+        }
     }
 }

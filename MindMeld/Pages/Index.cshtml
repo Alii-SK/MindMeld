@@ -23,9 +23,81 @@
             class="inline-block bg-[#00ffaa] text-black border-4 border-black px-6 py-3 text-xs transition">
         START GAME
     </button>
-    <button class="bg-transparent border-4 border-[#00ffaa] px-6 py-3 text-xs hover:bg-[#00ffaa] hover:text-black transition">
+    <button data-on-click="$showModal = true" class="bg-transparent border-4 border-[#00ffaa] px-6 py-3 text-xs hover:bg-[#00ffaa] hover:text-black transition">
         HOW TO PLAY
     </button>
 </div>
 <div data-show="$playerName==''" class="mt-3 text-center text-red-400 text-xs">Please Enter Your Name</div>
+<!-- How to Play Modal -->
+<div data-show="$showModal" data-signals-show-modal="false" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <div class="bg-black border-4 border-[#00ffaa] max-w-2xl max-h-[90vh] overflow-y-auto p-8 m-4">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl text-[#00ffaa] font-bold">HOW TO PLAY MIND MELD</h2>
+            <button data-on-click="$showModal = false" class="text-[#00ffaa] hover:text-red-400 text-2xl font-bold">×</button>
+        </div>
+
+        <!-- Game Steps -->
+        <div class="space-y-6 text-left">
+            <!-- Step 1 -->
+            <div class="border-l-4 border-[#00ffaa] pl-4">
+                <h3 class="text-lg text-[#00ddaa] font-bold mb-2">1. THE GOAL</h3>
+                <p class="text-[#00ffaa] text-sm leading-relaxed">
+                    Work together with your teammates to think of the <span class="text-yellow-400 font-bold">exact same word</span> at the same time.
+                    The goal is to achieve a "mind meld" - when everyone submits the identical word!
+                </p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="border-l-4 border-[#00ffaa] pl-4">
+                <h3 class="text-lg text-[#00ddaa] font-bold mb-2">2. GAME SETUP</h3>
+                <p class="text-[#00ffaa] text-sm leading-relaxed">
+                    • Join a room with your friends (2+ players)<br>
+                    • The room host starts the game when everyone is ready<br>
+                    • You have multiple rounds to achieve the mind meld
+                </p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="border-l-4 border-[#00ffaa] pl-4">
+                <h3 class="text-lg text-[#00ddaa] font-bold mb-2">3. EACH ROUND</h3>
+                <p class="text-[#00ffaa] text-sm leading-relaxed">
+                    • You have <span class="text-yellow-400 font-bold">15 seconds</span> to think of a word<br>
+                    • Type your word and submit it before time runs out<br>
+                    • All words are revealed simultaneously after submission<br>
+                    • If everyone chose the same word - <span class="text-green-400 font-bold">YOU WIN!</span>
+                </p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="border-l-4 border-[#00ffaa] pl-4">
+                <h3 class="text-lg text-[#00ddaa] font-bold mb-2">4. STRATEGY TIPS</h3>
+                <p class="text-[#00ffaa] text-sm leading-relaxed">
+                    • Think simple and obvious words<br>
+                    • Consider what your teammates might think<br>
+                    • Use previous round results as clues<br>
+                    • Common categories: colors, animals, food, objects
+                </p>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="border-l-4 border-[#00ffaa] pl-4">
+                <h3 class="text-lg text-[#00ddaa] font-bold mb-2">5. WINNING & LOSING</h3>
+                <p class="text-[#00ffaa] text-sm leading-relaxed">
+                    • <span class="text-green-400 font-bold">WIN:</span> All players submit the exact same word<br>
+                    • <span class="text-red-400 font-bold">CONTINUE:</span> Different words were submitted, try next round<br>
+                    • <span class="text-orange-400 font-bold">GAME OVER:</span> Maximum rounds reached without success
+                </p>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="mt-8 text-center">
+            <button data-on-click="$showModal = false"
+                    class="bg-[#00ffaa] text-black border-4 border-black px-6 py-3 text-xs hover:bg-[#00ddaa] transition">
+                GOT IT!
+            </button>
+        </div>
+    </div>
+</div>
 
