@@ -21,7 +21,10 @@
             @RenderBody()
         </main>
     </div>
-
+    
+    <!-- Sound Control Menu -->
+    <div id="sound-control-container" data-signals-show-sound-menu="false"></div>
+    
     <footer class="border-top footer text-muted">
         <div class="">
             &copy; 2025 - MindMeld - <a asp-area="" asp-page="/Privacy">Privacy</a>
@@ -30,6 +33,9 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <!-- Sound Management Scripts -->
+    <script src="~/js/soundManager.js" asp-append-version="true"></script>
+    <script src="~/js/soundControlMenu.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

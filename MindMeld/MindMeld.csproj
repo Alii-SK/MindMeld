@@ -10,4 +10,8 @@
     <PackageReference Include="StarFederation.Datastar" Version="1.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\sounds\" />
+  </ItemGroup>
+
 </Project>

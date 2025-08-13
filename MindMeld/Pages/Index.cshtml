@@ -3,6 +3,12 @@
 @{
     ViewData["Title"] = "Home page";
 }
+<div class="fixed top-20 right-20 z-20">
+    <button data-on-click="$showSoundMenu = !$showSoundMenu"
+            class="bg-transparent border-4 border-[#00ffaa] px-6 py-3 text-xs hover:bg-[#00ffaa] hover:text-black transition">
+        🔊 SOUND
+    </button>
+</div>
 <div class="fixed top-4 right-4 z-10">
     <div class="flex items-center space-x-4">
         <input type="text"
@@ -28,6 +34,89 @@
     </button>
 </div>
 <div data-show="$playerName==''" class="mt-3 text-center text-red-400 text-xs">Please Enter Your Name</div>
+<!-- Sound Control Modal -->
+<div data-show="$showSoundMenu" data-signals-show-sound-menu="false" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+    <div class="bg-black border-4 border-[#00ffaa] max-w-md p-6 m-4">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl text-[#00ffaa] font-bold">SOUND SETTINGS</h2>
+            <button data-on-click="$showSoundMenu = false" class="text-[#00ffaa] hover:text-red-400 text-2xl font-bold">×</button>
+        </div>
+
+        <!-- Sound Controls -->
+        <div class="space-y-4">
+            <!-- Music Toggle -->
+            <div class="flex items-center justify-between text-[#00ffaa] text-sm">
+                <span>Music</span>
+                <button data-on-click="toggleMusic()"
+                        class="px-3 py-1 border border-[#00ffaa] text-xs hover:bg-[#00ffaa] hover:text-black transition"
+                        id="music-toggle">
+                    ON
+                </button>
+            </div>
+
+            <!-- SFX Toggle -->
+            <div class="flex items-center justify-between text-[#00ffaa] text-sm">
+                <span>Sound Effects</span>
+                <button data-on-click="toggleSFX()"
+                        class="px-3 py-1 border border-[#00ffaa] text-xs hover:bg-[#00ffaa] hover:text-black transition"
+                        id="sfx-toggle">
+                    ON
+                </button>
+            </div>
+
+            <!-- Master Volume -->
+            <div class="mb-3">
+                <label class="block text-[#00ffaa] text-xs mb-1">Master Volume</label>
+                <input type="range" min="0" max="100" value="70"
+                       class="w-full"
+                       data-on-input="setMasterVolume(this.value / 100)"
+                       style="accent-color: #00ffaa;"
+                       id="master-volume">
+            </div>
+
+            <!-- Music Volume -->
+            <div class="mb-3">
+                <label class="block text-[#00ffaa] text-xs mb-1">Music Volume</label>
+                <input type="range" min="0" max="100" value="50"
+                       class="w-full"
+                       data-on-input="setMusicVolume(this.value / 100)"
+                       style="accent-color: #00ffaa;"
+                       id="music-volume">
+            </div>
+
+            <!-- SFX Volume -->
+            <div class="mb-4">
+                <label class="block text-[#00ffaa] text-xs mb-1">SFX Volume</label>
+                <input type="range" min="0" max="100" value="80"
+                       class="w-full"
+                       data-on-input="setSFXVolume(this.value / 100)"
+                       style="accent-color: #00ffaa;"
+                       id="sfx-volume">
+            </div>
+
+            <!-- Test Buttons -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <button data-on-click="playClickSound()"
+                        class="px-2 py-1 border border-[#00ffaa] hover:bg-[#00ffaa] hover:text-black transition">
+                    Test Click
+                </button>
+                <button data-on-click="playSuccessSound()"
+                        class="px-2 py-1 border border-[#00ffaa] hover:bg-[#00ffaa] hover:text-black transition">
+                    Test Success
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="mt-6 text-center">
+            <button data-on-click="$showSoundMenu = false"
+                    class="bg-[#00ffaa] text-black border-4 border-black px-6 py-2 text-xs hover:bg-[#00ddaa] transition">
+                CLOSE
+            </button>
+        </div>
+    </div>
+</div>
 <!-- How to Play Modal -->
 <div data-show="$showModal" data-signals-show-modal="false" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
     <div class="bg-black border-4 border-[#00ffaa] max-w-2xl max-h-[90vh] overflow-y-auto p-8 m-4">
@@ -100,4 +189,77 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        // Initialize sound settings when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Start background music when page loads
+            if (soundManager.musicEnabled) {
+                startBackgroundMusic();
+            }
+            
+            // Update the sound control buttons to reflect current settings
+            updateSoundControls();
+
+            // Add click sounds to existing buttons
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    playClickSound();
+                });
+            });
+        });
+
+        // Sound control functions
+        function toggleMusic() {
+            soundManager.toggleMusic();
+            updateSoundControls();
+        }
+
+        function toggleSFX() {
+            soundManager.toggleSFX();
+            updateSoundControls();
+        }
+
+        function setMasterVolume(volume) {
+            soundManager.setMasterVolume(volume);
+        }
+
+        function setMusicVolume(volume) {
+            soundManager.setMusicVolume(volume);
+        }
+
+        function setSFXVolume(volume) {
+            soundManager.setSFXVolume(volume);
+        }
+
+        function updateSoundControls() {
+            const musicToggle = document.getElementById('music-toggle');
+            const sfxToggle = document.getElementById('sfx-toggle');
+            const masterVolume = document.getElementById('master-volume');
+            const musicVolume = document.getElementById('music-volume');
+            const sfxVolume = document.getElementById('sfx-volume');
+            
+            if (musicToggle) {
+                musicToggle.textContent = soundManager.musicEnabled ? 'ON' : 'OFF';
+            }
+            
+            if (sfxToggle) {
+                sfxToggle.textContent = soundManager.sfxEnabled ? 'ON' : 'OFF';
+            }
+
+            if (masterVolume) {
+                masterVolume.value = soundManager.masterVolume * 100;
+            }
+
+            if (musicVolume) {
+                musicVolume.value = soundManager.musicVolume * 100;
+            }
+
+            if (sfxVolume) {
+                sfxVolume.value = soundManager.sfxVolume * 100;
+            }
+        }
+    </script>
+}
 
